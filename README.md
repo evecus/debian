@@ -4,4 +4,5 @@ docker run -d \
   -p 2222:22 \
   -e ssh_password=ssh密码 \
   -v /path:/root \
-  ghcr.io/evecus/debian-docker:latest
+  -v /path:/usr/local/bin \
+  ghcr.io/evecus/debian:latest
