@@ -25,6 +25,6 @@ RUN chmod +x /entrypoint.sh
 
 # 暴露端口与定义持久化目录
 EXPOSE 22
-VOLUME ["/root"]
+VOLUME ["/root", "/usr/local/bin"]
 
 ENTRYPOINT ["/entrypoint.sh"]
