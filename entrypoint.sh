@@ -1,40 +1,51 @@
 #!/bin/bash
 
-# 1. 设置 root 密码
+# --- 1. 设置 Root 密码 ---
 if [ -z "$ssh_password" ]; then
-    # 若未设置环境变量，则使用默认密码 root
     echo "root:root" | chpasswd
-    echo "Warning: ssh_password is not set, using default: root"
+    echo "Warning: No ssh_password environment variable found, using default: root"
 else
     echo "root:$ssh_password" | chpasswd
-    echo "Success: Password set from environment variable."
+    echo "Success: Root password updated."
 fi
 
-# 2. 启动 SSH 服务
+# --- 2. 启动核心服务 ---
+# 启动 SSH 服务
 /usr/sbin/sshd
 
-# 3. 自动加载 Cron 定时任务
-# 逻辑：如果挂载的 /root 目录下有 crontab.txt，则将其导入系统定时任务
-if [ -f "/root/crontab.txt" ]; then
-    echo "Loading custom cron tasks from /root/crontab.txt..."
-    chmod 600 /root/crontab.txt
-    crontab /root/crontab.txt
+# --- 3. 处理定时任务 (加载 /root/cron) ---
+if [ -f "/root/cron" ]; then
+    echo "Checking /root/cron..."
+    # 移除 Windows 换行符
+    sed -i 's/\r$//' /root/cron
+    chmod 600 /root/cron
+    crontab /root/cron
+    echo "Cron tasks loaded."
+else
+    echo "Notice: /root/cron not found, skipping."
 fi
-# 启动 cron 服务
+# 启动定时任务守护进程
 service cron start
 
-# 4. 后台执行二进制文件
-# 逻辑：自动运行 /root/bin 目录下所有具备可执行权限的文件
-if [ -d "/root/bin" ]; then
-    echo "Scanning /root/bin for binaries to start..."
-    for file in /root/bin/*; do
-        if [ -f "$file" ] && [ -x "$file" ]; then
-            echo "Starting background process: $file"
-            "$file" &
-        fi
-    done
+# --- 4. 启动后台常驻任务 (加载 /root/autostart) ---
+if [ -f "/root/autostart" ]; then
+    echo "Reading /root/autostart list..."
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # 移除回车符，并过滤注释(#)和空行
+        line=$(echo "$line" | sed 's/\r$//')
+        [[ "$line" =~ ^#.*$ || -z "$line" ]] && continue
+        
+        echo "Launching in background: $line"
+        eval "$line" &
+    done < "/root/autostart"
+else
+    echo "Notice: /root/autostart not found, skipping."
 fi
 
-# 5. 保持容器后台运行
+# --- 5. 保持容器前台运行 ---
 echo "Debian 12 environment is ready."
+# 打印已加载的定时任务供检查
+crontab -l 2>/dev/null || echo "No active cron jobs."
+
+# 阻塞主进程
 tail -f /dev/null
