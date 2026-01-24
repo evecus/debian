@@ -22,8 +22,6 @@ RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/
 # 将启动脚本复制到根目录
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-COPY autostart /root/autostart
-COPY cron /root/cron
 
 # 暴露端口与定义持久化目录
 EXPOSE 22
