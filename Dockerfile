@@ -1,7 +1,11 @@
 FROM debian:12-slim
 
-# 安装 SSH、Cron、常用网络工具和基础依赖
+# 1. 设置环境变量，让某些程序直接识别上海时区
+ENV TZ=Asia/Shanghai
+
+# 2. 安装必要工具，并配置时区
 RUN apt-get update && apt-get install -y \
+    tzdata \
     openssh-server \
     cron \
     wget \
@@ -12,6 +16,8 @@ RUN apt-get update && apt-get install -y \
     net-tools \
     procps \
     ca-certificates \
+    && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo "Asia/Shanghai" > /etc/timezone \
     && mkdir /var/run/sshd \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
