@@ -13,23 +13,23 @@ fi
 # 启动 SSH 服务
 /usr/sbin/sshd
 
-# --- 3. 处理定时任务 (加载 /root/cron) ---
-if [ -f "/root/cron" ]; then
-    echo "Checking /root/cron..."
+# --- 3. 处理定时任务 (加载 /root/auto/cron) ---
+if [ -f "/root/auto/cron" ]; then
+    echo "Checking /root/auto/cron..."
     # 移除 Windows 换行符
-    sed -i 's/\r$//' /root/cron
-    chmod 600 /root/cron
-    crontab /root/cron
+    sed -i 's/\r$//' /root/auto/cron
+    chmod 600 /root/auto/cron
+    crontab /root/auto/cron
     echo "Cron tasks loaded."
 else
-    echo "Notice: /root/cron not found, skipping."
+    echo "Notice: /root/auto/cron not found, skipping."
 fi
 # 启动定时任务守护进程
 service cron start
 
-# --- 4. 启动后台常驻任务 (加载 /root/autostart) ---
-if [ -f "/root/autostart" ]; then
-    echo "Reading /root/autostart list..."
+# --- 4. 启动后台常驻任务 (加载 /root/auto/systemd) ---
+if [ -f "/root/auto/systemd" ]; then
+    echo "Reading /root/auto/systemd list..."
     while IFS= read -r line || [[ -n "$line" ]]; do
         # 移除回车符，并过滤注释(#)和空行
         line=$(echo "$line" | sed 's/\r$//')
@@ -37,9 +37,9 @@ if [ -f "/root/autostart" ]; then
         
         echo "Launching in background: $line"
         eval "$line" &
-    done < "/root/autostart"
+    done < "/root/auto/systemd"
 else
-    echo "Notice: /root/autostart not found, skipping."
+    echo "Notice: /root/auto/systemd not found, skipping."
 fi
 
 # --- 5. 保持容器前台运行 ---
