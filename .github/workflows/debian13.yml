@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       image_name:
-        description: '请输入镜像名称'
+        description: '自定义镜像名称 (仅小写字母/数字/中划线)'
         required: true
-        default: 'my-app' # 默认值
+        default: 'debian13-custom' # 默认名称
       image_tag:
-        description: '请输入镜像标签'
+        description: '自定义镜像标签'
         required: true
-        default: 'latest'
+        default: 'latest' # 默认标签
 
 jobs:
   build-and-push:
@@ -23,7 +23,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # ... (中间省略 QEMU 和 Buildx 设置步骤) ...
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -32,17 +36,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 执行多架构构建并推送
+      # 执行构建并推送
       - name: Build and Push
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
-          # 使用上面 inputs 中定义的变量
+          # 这里通过插值表达式组合出你输入的名称和标签
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}:${{ github.event.inputs.image_tag }}
             ghcr.io/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}:sha-${{ github.sha }}
-          # 缓存设置保持不变
           cache-from: type=gha
           cache-to: type=gha,mode=max
