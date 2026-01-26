@@ -1,0 +1,48 @@
+name: 构建debian13
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_name:
+        description: '请输入镜像名称'
+        required: true
+        default: 'my-app' # 默认值
+      image_tag:
+        description: '请输入镜像标签'
+        required: true
+        default: 'latest'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # ... (中间省略 QEMU 和 Buildx 设置步骤) ...
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 执行多架构构建并推送
+      - name: Build and Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          # 使用上面 inputs 中定义的变量
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}:${{ github.event.inputs.image_tag }}
+            ghcr.io/${{ github.repository_owner }}/${{ github.event.inputs.image_name }}:sha-${{ github.sha }}
+          # 缓存设置保持不变
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
