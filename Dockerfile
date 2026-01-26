@@ -1,10 +1,12 @@
 FROM debian:13-slim
 
-# 1. 设置环境变量，让某些程序直接识别上海时区
+# 1. 设置环境变量：防止安装过程弹出交互对话框，并设置时区
+ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Shanghai
 
-# 2. 安装必要工具，并配置时区
-RUN apt-get update && apt-get install -y \
+# 2. 安装必要工具
+# 添加 --no-install-recommends 可以减小体积
+RUN apt-get update && apt-get install -y --no-install-recommends \
     tzdata \
     openssh-server \
     cron \
@@ -19,13 +21,14 @@ RUN apt-get update && apt-get install -y \
     && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo "Asia/Shanghai" > /etc/timezone \
     && mkdir /var/run/sshd \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# 配置 SSH：允许 root 登录和密码认证
-RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
-    && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+# 3. 配置 SSH
+RUN sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
 
-# 将启动脚本复制到根目录
+# 4. 启动脚本
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
