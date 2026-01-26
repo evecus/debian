@@ -1,4 +1,4 @@
-FROM debian:12-slim
+FROM debian:13-slim
 
 # 1. 设置环境变量，让某些程序直接识别上海时区
 ENV TZ=Asia/Shanghai
