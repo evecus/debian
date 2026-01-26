@@ -1,35 +1,60 @@
 name: 构建docker镜像
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+    tags: [ 'v*' ] # 匹配 v1.0, v2.1.0 等标签
+  workflow_dispatch: # 支持手动触发
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-and-push:
+    runs-on: debian-latest
+    permissions:
+      contents: read
+      packages: write
+
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 关键步骤：设置 QEMU 以支持跨平台构建
+      # 设置 QEMU 以支持 ARM64 模拟构建
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      # 关键步骤：设置 Docker Buildx
+      # 设置 Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to GitHub Container Registry
+      # 登录到 GitHub Container Registry
+      - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
+      # 自动提取标签：如果是 tag 推送则使用版本号，否则使用 latest 和 commit SHA
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=branch
+            type=sha
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      # 执行多架构构建并推送
+      - name: Build and Push
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          # 同时构建两种架构
           platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/${{ github.repository }}:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # 使用 GitHub 缓存加速构建
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
