@@ -2,11 +2,6 @@ name: 构建并推送Docker镜像到dockerhub
 
 on:
   workflow_dispatch:  # 手动触发
-  push:
-    branches:
-      - main
-    tags:
-      - 'v*.*.*'  # 例如 v1.2.3 的 tag 触发
 
 jobs:
   build-and-push:
