@@ -6,6 +6,9 @@ ENV TZ=Asia/Shanghai
 # 2. 安装必要工具，并配置时区
 RUN apt-get update && apt-get install -y \
     tzdata \
+    libssl3 \
+    openssl \
+    iproute2 \
     openssh-server \
     cron \
     wget \
