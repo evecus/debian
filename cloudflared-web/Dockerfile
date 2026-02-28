@@ -1,7 +1,7 @@
 # 阶段 1: 原生交叉编译 (极其快速)
 FROM --platform=$BUILDPLATFORM golang:1.21-alpine AS builder
 WORKDIR /build
-COPY main.go .
+COPY cloudflared-web/main.go .
 
 ARG TARGETOS
 ARG TARGETARCH
