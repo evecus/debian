@@ -1,0 +1,94 @@
+name: 自动检测 sing-box 更新并构建镜像
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 8 */5 * *'
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      needs_update: ${{ steps.compare.outputs.update }}
+      sb_ver: ${{ steps.get_version.outputs.sb_ver }} # 输出版本号给下一个 Job
+    steps:
+      - name: Get Latest sing-box Version
+        id: get_version
+        run: |
+          SB_VER=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | jq -r '.tag_name' | sed 's/^v//')
+          echo "sb_ver=$SB_VER" >> $GITHUB_OUTPUT
+          echo "latest_ver=$SB_VER" >> $GITHUB_ENV
+
+      - name: Restore Last Version
+        id: restore_cache
+        uses: actions/cache/restore@v4
+        with:
+          path: version_record.txt
+          key: sb-version-v1-${{ runner.os }}
+          restore-keys: |
+            sb-version-v1-
+
+      - name: Compare Versions
+        id: compare
+        run: |
+          NEW_VER="${{ steps.get_version.outputs.sb_ver }}"
+          OLD_VER=$([ -f version_record.txt ] && cat version_record.txt || echo "none")
+
+          if [ "$NEW_VER" != "$OLD_VER" ]; then
+            echo "update=true" >> $GITHUB_OUTPUT
+            echo "$NEW_VER" > version_record.txt
+          else
+            echo "update=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Save Version to Cache
+        if: steps.compare.outputs.update == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: version_record.txt
+          key: sb-version-v1-${{ runner.os }}-${{ github.run_id }}
+
+  build-and-push:
+    needs: check-version
+    if: needs.check-version.outputs.needs_update == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/singhy
+          tags: |
+            type=raw,value=latest
+            # 核心：使用检测到的版本号作为镜像 Tag
+            type=raw,value=${{ needs.check-version.outputs.sb_ver }}
+
+      - name: Build and Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./singhy/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # 推荐：将版本号传给 Dockerfile 内部变量
+          build-args: |
+            SB_VER=${{ needs.check-version.outputs.sb_ver }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
