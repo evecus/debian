@@ -11,6 +11,8 @@ URLS="${URLS:-}"
 PATH_NAME="${PATH_NAME:-}"
 TIME="${TIME:-12:00}"
 CRON_ENV="${CRON:-}"
+CF="${CF:-}"
+TOKEN="${TOKEN:-}"
 
 # 校验 CRON 表达式（5段，每段合法字符）
 is_valid_cron() {
@@ -182,7 +184,17 @@ echo "[init] cron 已注册: $FINAL_CRON"
 # 启动 cron 守护
 crond
 
-# ─── 5. 启动 Nginx（前台）───────────────────────────────────────────────────
+# ─── 5. 启动 Cloudflare Argo 隧道（可选）────────────────────────────────────
+
+if [ "$CF" = "true" ] && [ -n "$TOKEN" ]; then
+    echo "[init] 启动 Cloudflare Argo 隧道..."
+    cloudflared tunnel --no-autoupdate run --token "$TOKEN" > /data/cloudflared.log 2>&1 &
+    echo "[init] Argo 隧道已在后台启动"
+else
+    echo "[init] 未启用 Argo 隧道（CF!=true 或 TOKEN 未设置）"
+fi
+
+# ─── 6. 启动 Nginx（前台）───────────────────────────────────────────────────
 
 echo "[init] 启动 Nginx..."
 exec nginx -g "daemon off;"
