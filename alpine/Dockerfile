@@ -31,9 +31,9 @@ RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/
     && echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config
 
 # 将启动脚本复制到根目录
-COPY entrypoint_alpine.sh /entrypoint.sh
+COPY /alpine/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-RUN mkdir -p /root/auto
+
 # 暴露端口与定义持久化目录
 EXPOSE 22
 VOLUME ["/root", "/opt", "/usr/local/bin"]
