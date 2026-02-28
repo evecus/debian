@@ -20,7 +20,7 @@ RUN mkdir /var/run/sshd && \
     sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
 
 # 4. 将本地的 entrypoint.sh 复制到容器根目录并赋权
-COPY entrypoint.sh /entrypoint.sh
+COPY ubuntu/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # 5. 暴露端口与挂载点
