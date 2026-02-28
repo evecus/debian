@@ -1,9 +1,6 @@
 name: files-git
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'files-git/**'
 
 jobs:
   build-and-push:
