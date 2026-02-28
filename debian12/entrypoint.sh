@@ -1,17 +1,20 @@
 #!/bin/bash
 
 # --- 1. 设置 Root 密码 ---
-if [ -z "$ssh_password" ]; then
+if [ -z "$PASSWORD" ]; then
     echo "root:root" | chpasswd
-    echo "Warning: No ssh_password environment variable found, using default: root"
+    echo "Warning: No PASSWORD environment variable found, using default: root"
 else
-    echo "root:$ssh_password" | chpasswd
+    echo "root:$PASSWORD" | chpasswd
     echo "Success: Root password updated."
 fi
 
 # --- 2. 启动核心服务 ---
 # 启动 SSH 服务
 /usr/sbin/sshd
+
+mkdir -p /root/auto
+touch /root/auto/cron && touch /root/auto/systemd
 
 # --- 3. 处理定时任务 (加载 /root/auto/cron) ---
 if [ -f "/root/auto/cron" ]; then
