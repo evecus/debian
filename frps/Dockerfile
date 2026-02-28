@@ -21,7 +21,8 @@ RUN set -eux; \
 # ---------- 第二阶段：运行镜像 ----------
 FROM alpine:3.19
 
-RUN apt-get update && apt-get install -y ca-certificates && apt-get clean && rm -rf /var/lib/apt/lists/*
+# 修复：alpine 使用 apk，而非 apt-get
+RUN apk add --no-cache ca-certificates
 
 WORKDIR /app
 
