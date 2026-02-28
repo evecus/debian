@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>rules_set</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@300;400;500&display=swap');
+
+:root {
+  --bg: #0d1117;
+  --bg2: #161b22;
+  --bg3: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text2: #8b949e;
+  --accent: #58a6ff;
+  --accent2: #1f6feb;
+  --green: #3fb950;
+  --folder: #e3b341;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Noto Sans SC', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-weight: 300;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ── */
+header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+}
+.logo span { color: var(--accent); }
+
+.sync-info {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── Layout ── */
+main {
+  max-width: 960px;
+  width: 100%;
+  margin: 32px auto;
+  padding: 0 24px;
+  flex: 1;
+}
+
+/* ── Breadcrumb ── */
+.breadcrumb {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text2);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.breadcrumb .crumb {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: none;
+}
+.breadcrumb .crumb:hover { text-decoration: underline; }
+.breadcrumb .sep { color: var(--border); margin: 0 2px; }
+.breadcrumb .current { color: var(--text); }
+
+/* ── File list ── */
+.file-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.file-box-header {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text2);
+  font-family: var(--mono);
+  display: flex;
+  justify-content: space-between;
+}
+.file-row {
+  display: grid;
+  grid-template-columns: 26px 1fr 90px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background .1s;
+  cursor: pointer;
+}
+.file-row:last-child { border-bottom: none; }
+.file-row:hover { background: var(--bg3); }
+.file-row .icon { font-size: 15px; text-align: center; }
+.file-row .name {
+  font-size: 14px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-row .name:hover { color: var(--accent); }
+.file-row .size {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text2);
+  text-align: right;
+}
+.back-row .name { color: var(--text2); }
+
+/* ── Preview panel ── */
+.preview-wrap {
+  display: none;
+  flex-direction: column;
+}
+.preview-wrap.active { display: flex; }
+
+.preview-header {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px 8px 0 0;
+  padding: 11px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.preview-meta {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.preview-meta strong { color: var(--text); }
+
+.btn-group { display: flex; gap: 8px; flex-shrink: 0; }
+.btn {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all .15s;
+  background: var(--bg3);
+  color: var(--text);
+}
+.btn:hover { background: var(--border); }
+.btn-primary {
+  background: var(--accent2);
+  color: #fff;
+  border-color: var(--accent);
+}
+.btn-primary:hover { background: var(--accent); }
+
+.code-wrap {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  overflow: auto;
+  max-height: 75vh;
+}
+.line-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.ln {
+  width: 1%;
+  min-width: 48px;
+  padding: 0 14px 0 16px;
+  text-align: right;
+  color: var(--text2);
+  border-right: 1px solid var(--border);
+  user-select: none;
+  vertical-align: top;
+  white-space: nowrap;
+}
+.lc {
+  padding: 0 16px;
+  white-space: pre;
+  color: var(--text);
+  vertical-align: top;
+}
+tr:hover .ln { color: var(--text); }
+tr:hover { background: rgba(255,255,255,.025); }
+
+.loading {
+  padding: 48px;
+  text-align: center;
+  color: var(--text2);
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.binary-notice {
+  padding: 48px;
+  text-align: center;
+  color: var(--text2);
+}
+.binary-notice .big { font-size: 40px; margin-bottom: 12px; }
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: all .2s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo" onclick="navigate('')">rules<span>_set</span></span>
+  <div class="sync-info">
+    <div class="dot"></div>
+    <span id="last-update">加载中...</span>
+  </div>
+</header>
+
+<main>
+  <div class="breadcrumb" id="breadcrumb"></div>
+
+  <!-- 目录列表 -->
+  <div class="file-box" id="dir-view"></div>
+
+  <!-- 文件预览 -->
+  <div class="preview-wrap" id="preview-wrap">
+    <div class="preview-header">
+      <div class="preview-meta" id="preview-meta"></div>
+      <div class="btn-group">
+        <button class="btn" onclick="backToDir()">← 返回</button>
+        <a class="btn btn-primary" id="dl-btn" download>⬇ 下载</a>
+      </div>
+    </div>
+    <div class="code-wrap" id="code-wrap"></div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TEXT_EXTS = new Set([
+  'yaml','yml','json','toml','txt','conf','list','ini','cfg',
+  'md','sh','py','js','ts','html','css','xml','go','rs','log',
+  'env','properties','lock','gitignore','editorconfig'
+]);
+
+let currentPath = '';   // 当前目录路径（相对于根，不含前后斜杠）
+let currentFile = null; // 当前预览的文件路径
+
+// ── 读取最后同步时间 ──
+fetch('/__api__/.last_update_meta', {cache:'no-store'})
+  .catch(()=>{});
+
+// 用另一种方式读同步时间：通过特殊接口
+async function loadLastUpdate() {
+  try {
+    const r = await fetch('/healthz');
+    // healthz只是测活，同步时间通过meta文件读
+  } catch(e){}
+}
+
+// 从 /data/.last_update 读取（通过特殊nginx路由暴露）
+async function fetchLastUpdate() {
+  try {
+    const r = await fetch('/__last_update__', {cache:'no-store'});
+    if (r.ok) {
+      const t = await r.text();
+      document.getElementById('last-update').textContent = '最后同步：' + t.trim();
+    }
+  } catch(e) {
+    document.getElementById('last-update').textContent = '最后同步：未知';
+  }
+}
+fetchLastUpdate();
+
+// ── 工具函数 ──
+function ext(name) {
+  const i = name.lastIndexOf('.');
+  return i >= 0 ? name.slice(i+1).toLowerCase() : '';
+}
+
+function isText(name) {
+  return TEXT_EXTS.has(ext(name));
+}
+
+function humanSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(1) + ' MB';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ── 面包屑 ──
+function renderBreadcrumb(path) {
+  const parts = path ? path.split('/') : [];
+  let html = '<span class="crumb" onclick="navigate(\'\')">root</span>';
+  let acc = '';
+  parts.forEach((p, i) => {
+    acc += (acc ? '/' : '') + p;
+    const a = acc;
+    html += '<span class="sep">/</span>';
+    if (i === parts.length - 1 && currentFile) {
+      html += `<span class="current">${p}</span>`;
+    } else {
+      html += `<span class="crumb" onclick="navigate('${a}')">${p}</span>`;
+    }
+  });
+  document.getElementById('breadcrumb').innerHTML = html;
+}
+
+// ── 目录加载 ──
+async function navigate(path) {
+  currentPath = path;
+  currentFile = null;
+
+  // 切换显示
+  document.getElementById('dir-view').style.display = '';
+  document.getElementById('preview-wrap').classList.remove('active');
+
+  renderBreadcrumb(path);
+
+  const apiPath = '/__api__/' + (path ? path + '/' : '');
+  document.getElementById('dir-view').innerHTML = '<div class="loading">加载中...</div>';
+
+  try {
+    const r = await fetch(apiPath, {cache:'no-store'});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const entries = await r.json();
+
+    const dirs  = entries.filter(e => e.type === 'directory').sort((a,b) => a.name.localeCompare(b.name));
+    const files = entries.filter(e => e.type === 'file').sort((a,b) => a.name.localeCompare(b.name));
+
+    let rows = '';
+
+    // 返回上级
+    if (path) {
+      const parent = path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '';
+      rows += `<div class="file-row back-row" onclick="navigate('${parent}')">
+        <div class="icon">📂</div>
+        <div class="name">..</div>
+        <div class="size">—</div>
+      </div>`;
+    }
+
+    dirs.forEach(e => {
+      const child = path ? path + '/' + e.name : e.name;
+      rows += `<div class="file-row" onclick="navigate('${child}')">
+        <div class="icon" style="color:var(--folder)">📁</div>
+        <div class="name">${e.name}</div>
+        <div class="size">—</div>
+      </div>`;
+    });
+
+    files.forEach(e => {
+      const filePath = path ? path + '/' + e.name : e.name;
+      rows += `<div class="file-row" onclick="openFile('${filePath}', ${e.size})">
+        <div class="icon">📄</div>
+        <div class="name">${e.name}</div>
+        <div class="size">${humanSize(e.size)}</div>
+      </div>`;
+    });
+
+    const total = `${dirs.length} 个目录，${files.length} 个文件`;
+    document.getElementById('dir-view').innerHTML = `
+      <div class="file-box-header">
+        <span>/${path || ''}</span>
+        <span>${total}</span>
+      </div>
+      ${rows}`;
+
+  } catch(e) {
+    document.getElementById('dir-view').innerHTML =
+      `<div class="loading">加载失败：${e.message}</div>`;
+  }
+}
+
+// ── 文件预览 ──
+async function openFile(filePath, size) {
+  currentFile = filePath;
+
+  const parts = filePath.split('/');
+  const name = parts[parts.length - 1];
+  const dirPath = parts.slice(0, -1).join('/');
+
+  document.getElementById('dir-view').style.display = 'none';
+  document.getElementById('preview-wrap').classList.add('active');
+
+  renderBreadcrumb(filePath);
+
+  const dlUrl = '/' + filePath;
+  document.getElementById('dl-btn').href = dlUrl;
+  document.getElementById('dl-btn').download = name;
+  document.getElementById('preview-meta').innerHTML =
+    `<span style="color:var(--text2)">${dirPath ? dirPath + '/' : ''}</span><strong>${name}</strong>` +
+    `<span style="color:var(--text2);margin-left:12px">${humanSize(size)}</span>`;
+
+  const codeWrap = document.getElementById('code-wrap');
+
+  if (!isText(name)) {
+    // 二进制：提示下载，触发浏览器下载
+    codeWrap.innerHTML = `<div class="binary-notice">
+      <div class="big">📦</div>
+      二进制文件，<a href="${dlUrl}" download style="color:var(--accent)">点击下载</a>
+    </div>`;
+    // 自动触发下载
+    const a = document.createElement('a');
+    a.href = dlUrl; a.download = name; a.click();
+    return;
+  }
+
+  codeWrap.innerHTML = '<div class="loading">加载中...</div>';
+
+  try {
+    const r = await fetch('/__raw__/' + filePath, {cache:'no-store'});
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const text = await r.text();
+    const lines = text.split('\n');
+
+    let rows = '';
+    lines.forEach((line, i) => {
+      const escaped = line
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;');
+      rows += `<tr><td class="ln">${i+1}</td><td class="lc">${escaped}</td></tr>`;
+    });
+
+    codeWrap.innerHTML = `<table class="line-table"><tbody>${rows}</tbody></table>`;
+  } catch(e) {
+    codeWrap.innerHTML = `<div class="loading">加载失败：${e.message}</div>`;
+  }
+}
+
+function backToDir() {
+  const dirPath = currentFile
+    ? currentFile.includes('/')
+      ? currentFile.slice(0, currentFile.lastIndexOf('/'))
+      : ''
+    : currentPath;
+  navigate(dirPath);
+}
+
+// 初始化
+navigate('');
+</script>
+</body>
+</html>
