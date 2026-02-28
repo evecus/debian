@@ -1,4 +1,4 @@
-name: 构建并推送 Docker Hub 镜像
+name: ubuntu
 
 on:
   workflow_dispatch: # 支持手动触发
@@ -33,7 +33,7 @@ jobs:
         with:
           # 自动组合：用户名/仓库名 (并将仓库名转为小写)
           images: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/ubuntu
           tags: |
             type=semver,pattern={{version}}
             type=ref,event=branch
@@ -45,6 +45,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ./ubuntu/Dockerfile
           push: true
           # 构建 amd64 (普通电脑) 和 arm64 (M1/M2 Mac 或 树莓派) 架构
           platforms: linux/amd64,linux/arm64
