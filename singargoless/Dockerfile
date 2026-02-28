@@ -41,7 +41,7 @@ RUN apk add --no-cache bash ca-certificates curl
 
 COPY --from=builder /usr/local/bin/sing-box /usr/local/bin/
 COPY --from=builder /usr/local/bin/cloudflared /usr/local/bin/
-COPY entrypoint.sh /entrypoint.sh
+COPY singargoless/entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh
 
