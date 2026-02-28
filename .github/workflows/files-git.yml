@@ -28,6 +28,6 @@ jobs:
           file: ./files-git/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: evecus/files-git:noargo
+          tags: evecus/files-git:argo
           cache-from: type=gha
           cache-to: type=gha,mode=max
