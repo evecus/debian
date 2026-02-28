@@ -71,7 +71,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/frps
           tags: |
             type=raw,value=latest
             type=raw,value=${{ needs.check-version.outputs.latest_ver }}
@@ -80,6 +80,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ./frps/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
