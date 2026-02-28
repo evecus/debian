@@ -45,7 +45,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile_alpine
+          file: ./alpine/Dockerfile
           push: true
           # 构建 amd64 (普通电脑) 和 arm64 (M1/M2 Mac 或 树莓派) 架构
           platforms: linux/amd64,linux/arm64
