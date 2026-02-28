@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # --- 1. 设置 Root 密码 ---
-if [ -z "$ssh_password" ]; then
+if [ -z "$PASSWORD" ]; then
     echo "root:root" | chpasswd
-    echo "Warning: No ssh_password environment variable found, using default: root"
+    echo "Warning: No PASSWORD environment variable found, using default: root"
 else
-    echo "root:$ssh_password" | chpasswd
+    echo "root:$PASSWORD" | chpasswd
     echo "Success: Root password updated."
 fi
 
