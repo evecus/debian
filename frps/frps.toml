@@ -1,0 +1,9 @@
+bindAddr = "0.0.0.0"
+bindPort = 8008
+auth.method = "token"
+auth.token = "25fcc669ceuqwqsu28yh8hhgt6d6t8u8"
+
+webServer.addr = "0.0.0.0"
+webServer.port = 7500
+webServer.user = "admin"
+webServer.password = "admin"
