@@ -10,6 +10,7 @@
 |------|----------|------|----------|
 | [alpine](./alpine/) | Alpine latest | 通用容器环境，内置 SSH / Cron | 手动 |
 | [debian12](./debian12/) | Debian 12 Slim | 通用容器环境，内置 SSH / Cron | 手动 |
+| [debian13](./debian13/) | Debian 13 Slim | 通用容器环境，内置 SSH / Cron | 手动 |
 | [ubuntu](./ubuntu/) | Ubuntu 24.04 | 通用容器环境，内置 SSH / Cron | 手动 |
 | [frps](./frps/) | Alpine | frp 服务端（frps），自动跟随最新版 | 定时 / 手动 |
 | [singhy](./singhy/) | Alpine | sing-box Hysteria2 代理服务端 | 定时 / 手动 |
