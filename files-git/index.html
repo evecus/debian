@@ -466,15 +466,24 @@ async function openFile(filePath, size) {
 
   const codeWrap = document.getElementById('code-wrap');
 
+  const MAX_PREVIEW = 500 * 1024; // 500 KB
+
   if (!isText(name)) {
     // 二进制：提示下载，触发浏览器下载
     codeWrap.innerHTML = `<div class="binary-notice">
       <div class="big">📦</div>
       二进制文件，<a href="${dlUrl}" download style="color:var(--accent)">点击下载</a>
     </div>`;
-    // 自动触发下载
     const a = document.createElement('a');
     a.href = dlUrl; a.download = name; a.click();
+    return;
+  }
+
+  if (size > MAX_PREVIEW) {
+    codeWrap.innerHTML = `<div class="binary-notice">
+      <div class="big">📄</div>
+      文件超过 500 KB（${humanSize(size)}），不支持在线预览，<a href="${dlUrl}" download style="color:var(--accent)">点击下载</a>
+    </div>`;
     return;
   }
 
