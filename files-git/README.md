@@ -1,4 +1,4 @@
-# rules-browser
+# files-git
 
 自动从 GitHub 仓库和/或指定 URL 拉取文件，通过 Nginx 提供只读文件浏览服务。浏览器可预览，`wget`/`curl` 直接可用，同一链接兼顾两者。
 
@@ -33,14 +33,14 @@
 ```bash
 docker run -d \
   -p 8080:8080 \
-  -e REPOSITORY=https://github.com/evecus/rules_set \
+  -e REPOSITORY=https://github.com/用户名/仓库名 \
   -e BRANCH=main \
   -e URLS="https://example.com/file1.yaml https://example.com/file2.list" \
   -e PATH_NAME=extra \
   -e TIME=12:00 \
   -v /host/data:/data \
-  --name rules-browser \
-  evecus/rules-browser
+  --name files-git \
+  evecus/files-git
 ```
 
 ## 文件访问
