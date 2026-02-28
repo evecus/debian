@@ -11,7 +11,7 @@ RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # 启动脚本
-COPY files-git/entrypoint.sh /entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # 数据持久化目录
