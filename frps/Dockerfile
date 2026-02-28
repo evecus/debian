@@ -19,7 +19,7 @@ RUN set -eux; \
     mv /tmp/frp_${VERSION}_linux_${ARCH}/frps /usr/local/bin/frps
 
 # ---------- 第二阶段：运行镜像 ----------
-FROM debian:12-slim
+FROM alpine:3.19
 
 RUN apt-get update && apt-get install -y ca-certificates && apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -30,8 +30,8 @@ COPY --from=fetcher /usr/local/bin/frps /app/frps
 RUN chmod +x /app/frps
 
 # 拷贝你仓库里的配置文件和脚本
-COPY frps.toml /app/frps.toml
-COPY entrypoint.sh /entrypoint.sh
+COPY frps/frps.toml /app/frps.toml
+COPY frps/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 8008
