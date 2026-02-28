@@ -1,0 +1,89 @@
+name: frps
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 */5 * *'
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      needs_update: ${{ steps.compare.outputs.update }}
+      latest_ver: ${{ steps.get_ver.outputs.ver }}
+    steps:
+      - name: 获取 frp 最新版本
+        id: get_ver
+        run: |
+          VER=$(curl -s https://api.github.com/repos/fatedier/frp/releases/latest | jq -r '.tag_name')
+          echo "ver=$VER" >> $GITHUB_OUTPUT
+
+      - name: 读取上次构建版本
+        id: restore_cache
+        uses: actions/cache/restore@v4
+        with:
+          path: last_frp_tag.txt
+          key: frp-version-v1
+
+      - name: 比对版本
+        id: compare
+        run: |
+          NEW_VER="${{ steps.get_ver.outputs.ver }}"
+          OLD_VER=$(cat last_frp_tag.txt 2>/dev/null || echo "none")
+          
+          if [ "$NEW_VER" != "$OLD_VER" ]; then
+            echo "检测到新版本: $OLD_VER -> $NEW_VER"
+            echo "$NEW_VER" > last_frp_tag.txt
+            echo "update=true" >> $GITHUB_OUTPUT
+          else
+            echo "版本无变化，跳过构建。"
+            echo "update=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 存入缓存
+        if: steps.compare.outputs.update == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: last_frp_tag.txt
+          key: frp-version-v1-${{ github.run_id }}
+
+  build-and-push:
+    needs: check-version
+    if: needs.check-version.outputs.needs_update == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/frps
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ needs.check-version.outputs.latest_ver }}
+
+      - name: Build and Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./frps/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
