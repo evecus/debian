@@ -18,7 +18,7 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then ARCH="x86-64"; else ARCH="arm64"; fi &&
     wget -O /tmp/cf.deb "https://github.com/cloudfoundry/cli/releases/download/${LATEST_TAG}/cf8-cli-installer_${LATEST_VERSION}_${ARCH}.deb" && \
     dpkg -i /tmp/cf.deb && rm /tmp/cf.deb
 
-COPY sap-keep.sh /usr/local/bin/sap-keep.sh
+COPY sapkeeplive/sap-keep.sh /usr/local/bin/sap-keep.sh
 RUN chmod +x /usr/local/bin/sap-keep.sh
 
 # 初始化日志
