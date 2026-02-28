@@ -1,4 +1,4 @@
-FROM alpine:latest AS builder
+FROM alpine:3.19
 RUN apk add --no-cache curl unzip
 
 # 自动识别架构并下载对应的二进制文件 
@@ -21,7 +21,7 @@ FROM alpine:latest
 RUN apk add --no-cache bash curl openssl ca-certificates jq
 COPY --from=builder /usr/local/bin/sing-box /usr/local/bin/
 COPY --from=builder /usr/local/bin/cloudflared /usr/local/bin/
-COPY entrypoint.sh /entrypoint.sh
+COPY singall/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # 环境变量占位 
