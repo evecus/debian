@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo "Asia/Shanghai" > /etc/timezone \
-    && mkdir /var/run/sshd \
+    && mkdir -p /var/run/sshd \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 配置 SSH：允许 root 登录和密码认证
