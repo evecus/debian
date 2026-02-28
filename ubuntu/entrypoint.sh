@@ -13,6 +13,10 @@ fi
 # 启动 SSH 服务
 /usr/sbin/sshd
 
+mkdir -p /root/auto
+touch /root/auto/cron && touch /root/auto/systemd
+
+
 # --- 3. 处理定时任务 (加载 /root/auto/cron) ---
 if [ -f "/root/auto/cron" ]; then
     echo "Checking /root/auto/cron..."
