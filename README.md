@@ -15,7 +15,7 @@
 | [singhy](./singhy/) | Alpine | sing-box Hysteria2 代理服务端 | 定时 / 手动 |
 | [singargoless](./singargoless/) | Alpine 3.20 | sing-box VLESS+WS + Cloudflare Argo 隧道 | 定时 / 手动 |
 | [singall](./singall/) | Alpine | sing-box 全协议合集（Hy2 / TUIC / VLESS / VMess / Reality） | 定时 / 手动 |
-| [sapkeeplive](./sapkeeplive/) | Ubuntu | SAP BTP CF 应用定时保活 | 手动 |
+| [sapkeeplive](./sapkeeplive/) | Alpine | SAP BTP CF 应用定时保活 | 手动 |
 | [cloudflared-web](./cloudflared-web/) | Alpine | Cloudflare Tunnel Web 管理界面 | 定时 / 手动 |
 
 ---
