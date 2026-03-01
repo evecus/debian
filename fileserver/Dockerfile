@@ -29,9 +29,8 @@ FROM alpine:latest
 
 RUN apk add --no-cache git wget cronie tzdata ca-certificates
 
+# 默认时区，可通过 -e TZ=... 覆盖，entrypoint.sh 会在运行时应用
 ENV TZ=Asia/Shanghai
-RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
-    && echo "Asia/Shanghai" > /etc/timezone
 
 COPY --from=fetcher /usr/local/bin/cloudflared /usr/local/bin/cloudflared
 COPY --from=builder /build/fileserver /usr/local/bin/fileserver
