@@ -42,6 +42,27 @@
     color: #6e40c9;
   }
 
+  .last-sync {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #57606a;
+  }
+
+  .last-sync .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #1a7f37;
+    flex-shrink: 0;
+  }
+
+  .last-sync .dot.unknown {
+    background: #8c959f;
+  }
+
   /* Container */
   .container {
     max-width: 1012px;
@@ -174,7 +195,29 @@
     </svg>
     FileServer
   </a>
+  <div class="last-sync" id="lastSync">
+    <span class="dot unknown" id="syncDot"></span>
+    <span id="syncTime">-</span>
+  </div>
 </header>
+
+<script>
+  fetch('/__last_update__')
+    .then(r => r.text())
+    .then(t => {
+      const dot = document.getElementById('syncDot');
+      const el = document.getElementById('syncTime');
+      if (t) {
+        dot.classList.remove('unknown');
+        el.textContent = '最后同步：' + t;
+      } else {
+        el.textContent = '未同步';
+      }
+    })
+    .catch(() => {
+      document.getElementById('syncTime').textContent = '未同步';
+    });
+</script>
 
 <main class="container">
 
