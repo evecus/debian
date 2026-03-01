@@ -41,6 +41,7 @@ type FileData struct {
 	Ext       string
 	Content   string
 	IsText    bool
+	IsTooBig  bool
 	IsImage   bool
 	ImageB64  string
 	ImageMime string
@@ -214,11 +215,15 @@ func serveFile(w http.ResponseWriter, r *http.Request, fsPath, urlPath string) {
 				fd.ImageMime = "image/png"
 			}
 		}
-	} else if isTextFile(ext) && info.Size() < 2*1024*1024 {
-		data, err := os.ReadFile(fsPath)
-		if err == nil {
-			fd.IsText = true
-			fd.Content = string(data)
+	} else if isTextFile(ext) {
+		if info.Size() > 500*1024 {
+			fd.IsTooBig = true
+		} else {
+			data, err := os.ReadFile(fsPath)
+			if err == nil {
+				fd.IsText = true
+				fd.Content = string(data)
+			}
 		}
 	}
 	tmpl := template.Must(template.New("file.html").Funcs(funcMap).ParseFS(templateFS, "templates/file.html"))
