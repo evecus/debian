@@ -71,6 +71,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Cannot create %s: %v\n", dataRoot, err)
 	}
 	http.HandleFunc("/__last_update__", lastUpdateHandler)
+	http.HandleFunc("/__raw__/", rawPrefixHandler)
 	http.HandleFunc("/", handler)
 	fmt.Printf("🚀 FileServer running at http://localhost:%s\n", port)
 	fmt.Printf("📁 Serving: %s\n", dataRoot)
@@ -88,6 +89,23 @@ var lastUpdateFile = func() string {
 	}
 	return filepath.Join(filepath.Dir("data/files"), ".last_update")
 }()
+
+func rawPrefixHandler(w http.ResponseWriter, r *http.Request) {
+	urlPath := strings.TrimPrefix(r.URL.Path, "/__raw__/")
+	fsPath := filepath.Join(dataRoot, filepath.FromSlash(urlPath))
+	absData, _ := filepath.Abs(dataRoot)
+	absPath, err := filepath.Abs(fsPath)
+	if err != nil || !strings.HasPrefix(absPath, absData) {
+		http.Error(w, "Forbidden", 403)
+		return
+	}
+	info, err := os.Stat(fsPath)
+	if err != nil || info.IsDir() {
+		http.Error(w, "Not Found", 404)
+		return
+	}
+	serveRaw(w, r, fsPath)
+}
 
 func lastUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	data, err := os.ReadFile(lastUpdateFile)
@@ -196,13 +214,14 @@ func serveFile(w http.ResponseWriter, r *http.Request, fsPath, urlPath string) {
 		scheme = "https"
 	}
 	rawURL := fmt.Sprintf("%s://%s/%s", scheme, r.Host, urlPath)
+	rawViewURL := fmt.Sprintf("%s://%s/__raw__/%s", scheme, r.Host, urlPath)
 	fd := FileData{
 		Path:    urlPath,
 		Parts:   buildParts(urlPath),
 		Name:    name,
 		Size:    info.Size(),
 		Ext:     ext,
-		RawURL:  rawURL,
+		RawURL:  rawViewURL,
 		WgetCmd: fmt.Sprintf(`wget "%s"`, rawURL),
 	}
 	if isImageFile(ext) {
