@@ -1,0 +1,409 @@
+{{define "file.html"}}<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{.Name}} — FileServer</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d0f;
+    --surface: #141417;
+    --surface2: #1a1a1f;
+    --border: #252530;
+    --border2: #2e2e3a;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --accent: #7c6aff;
+    --accent2: #a78bff;
+    --green: #4ade80;
+    --yellow: #fbbf24;
+    --blue: #60a5fa;
+    --pink: #f472b6;
+    --line-num-w: 52px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+  }
+
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--accent2);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo-icon {
+    width: 28px;
+    height: 28px;
+    background: linear-gradient(135deg, var(--accent), var(--pink));
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .container { max-width: 980px; margin: 0 auto; padding: 32px 24px; }
+
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    flex-wrap: wrap;
+  }
+
+  .breadcrumb a { color: var(--accent2); text-decoration: none; }
+  .breadcrumb a:hover { color: white; }
+  .breadcrumb .sep { color: var(--muted); }
+  .breadcrumb .current { color: var(--text); font-weight: 500; }
+
+  /* File header bar */
+  .file-header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px 12px 0 0;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .file-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .file-meta .filename {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+  }
+
+  .badge {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+  }
+
+  /* Action buttons */
+  .actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Syne', sans-serif;
+    text-decoration: none;
+    cursor: pointer;
+    border: 1px solid var(--border2);
+    background: var(--surface2);
+    color: var(--text);
+    transition: all 0.15s;
+  }
+
+  .btn:hover { background: var(--border2); border-color: var(--accent); color: white; }
+
+  .btn-raw { color: var(--green); border-color: #2d6a47; }
+  .btn-raw:hover { background: #1a3d2a; }
+
+  .btn-dl { color: var(--blue); border-color: #2a4a6a; }
+  .btn-dl:hover { background: #1a2d3d; }
+
+  /* Wget box */
+  .wget-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-bottom: none;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .wget-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+  }
+
+  .wget-cmd {
+    flex: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--green);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: text;
+    white-space: nowrap;
+    overflow-x: auto;
+    min-width: 0;
+  }
+
+  .copy-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--muted);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .copy-btn:hover { color: var(--text); border-color: var(--accent); }
+  .copy-btn.copied { color: var(--green); border-color: var(--green); }
+
+  /* Code area */
+  .code-box {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+  }
+
+  .code-table {
+    display: flex;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .line-numbers {
+    min-width: var(--line-num-w);
+    padding: 16px 0;
+    background: #0d1117;
+    text-align: right;
+    border-right: 1px solid var(--border);
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  .line-num {
+    display: block;
+    padding: 0 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #484f5a;
+  }
+
+  .code-content {
+    flex: 1;
+    padding: 16px;
+    overflow-x: auto;
+    min-width: 0;
+  }
+
+  .code-content pre {
+    margin: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre;
+  }
+
+  .code-content code {
+    background: none !important;
+    padding: 0 !important;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Image */
+  .img-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    padding: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+  }
+
+  .img-box img {
+    max-width: 100%;
+    max-height: 600px;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+
+  /* Binary */
+  .binary-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    padding: 48px;
+    text-align: center;
+  }
+
+  .binary-icon { font-size: 48px; margin-bottom: 16px; }
+  .binary-msg { color: var(--muted); font-size: 15px; margin-bottom: 24px; }
+
+  @media (max-width: 600px) {
+    .container { padding: 16px 12px; }
+    .header { padding: 12px 16px; }
+    .file-header { padding: 12px 14px; }
+    .actions { gap: 6px; }
+    .btn { padding: 5px 10px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <a href="/" class="logo">
+    <div class="logo-icon">📦</div>
+    FileServer
+  </a>
+</header>
+
+<main class="container">
+  <nav class="breadcrumb">
+    {{range $i, $p := .Parts}}
+      {{if $i}}<span class="sep">/</span>{{end}}
+      {{if eq $i (add (len $.Parts) -1)}}
+        <span class="current">{{$p.Name}}</span>
+      {{else}}
+        <a href="{{$p.Path}}">{{$p.Name}}</a>
+      {{end}}
+    {{end}}
+  </nav>
+
+  <div class="file-header">
+    <div class="file-meta">
+      <span class="filename">{{.Name}}</span>
+      <span class="badge">{{formatSize .Size}}</span>
+    </div>
+    <div class="actions">
+      <a class="btn btn-raw" href="{{.RawURL}}" target="_blank">
+        <span>⬡</span> Raw
+      </a>
+      <a class="btn btn-dl" href="{{.RawURL}}" download="{{.Name}}">
+        <span>⤓</span> Download
+      </a>
+    </div>
+  </div>
+
+  <div class="wget-box">
+    <span class="wget-label">wget:</span>
+    <span class="wget-cmd" id="wgetCmd">{{.WgetCmd}}</span>
+    <button class="copy-btn" id="copyBtn" onclick="copyWget()">Copy</button>
+  </div>
+
+  {{if .IsImage}}
+  <div class="img-box">
+    <img src="data:{{.ImageMime}};base64,{{.ImageB64}}" alt="{{.Name}}">
+  </div>
+
+  {{else if .IsText}}
+  <div class="code-box">
+    <div class="code-table">
+      <div class="line-numbers" id="lineNums"></div>
+      <div class="code-content">
+        <pre><code id="codeBlock" class="language-{{langClass .Ext}}">{{.Content}}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  {{else}}
+  <div class="binary-box">
+    <div class="binary-icon">📦</div>
+    <div class="binary-msg">This file cannot be previewed. Download it to view.</div>
+    <a class="btn btn-dl" href="{{.RawURL}}" download="{{.Name}}" style="display:inline-flex;margin:0 auto">
+      <span>⤓</span> Download {{.Name}}
+    </a>
+  </div>
+  {{end}}
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+  // Syntax highlighting
+  const block = document.getElementById('codeBlock');
+  if (block) {
+    hljs.highlightElement(block);
+
+    // Line numbers
+    const lines = block.textContent.split('\n');
+    // Remove trailing empty line from split
+    const count = lines[lines.length - 1] === '' ? lines.length - 1 : lines.length;
+    const nums = document.getElementById('lineNums');
+    for (let i = 1; i <= count; i++) {
+      const span = document.createElement('span');
+      span.className = 'line-num';
+      span.textContent = i;
+      nums.appendChild(span);
+    }
+  }
+
+  // Copy wget
+  function copyWget() {
+    const cmd = document.getElementById('wgetCmd').textContent;
+    navigator.clipboard.writeText(cmd).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = '✓ Copied';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = 'Copy';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+</script>
+
+</body>
+</html>{{end}}
