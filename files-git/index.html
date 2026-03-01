@@ -250,6 +250,50 @@ tr:hover { background: rgba(255,255,255,.025); }
 }
 .binary-notice .big { font-size: 40px; margin-bottom: 12px; }
 
+/* ── Syncing overlay ── */
+.syncing-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(13,17,23,.92);
+  z-index: 999;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+.syncing-overlay.active { display: flex; }
+.syncing-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 40px 52px;
+  text-align: center;
+  min-width: 280px;
+}
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  margin: 0 auto 20px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.syncing-card h2 {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.syncing-card p {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.6;
+}
+
 /* ── Toast ── */
 .toast {
   position: fixed;
@@ -301,6 +345,15 @@ tr:hover { background: rgba(255,255,255,.025); }
 
 <div class="toast" id="toast"></div>
 
+<!-- 同步中覆盖层 -->
+<div class="syncing-overlay" id="syncing-overlay">
+  <div class="syncing-card">
+    <div class="spinner"></div>
+    <h2>文件正在同步中</h2>
+    <p>请稍候，同步完成后<br>页面将自动刷新。</p>
+  </div>
+</div>
+
 <script>
 const TEXT_EXTS = new Set([
   'yaml','yml','json','toml','txt','conf','list','ini','cfg',
@@ -311,31 +364,49 @@ const TEXT_EXTS = new Set([
 let currentPath = '';   // 当前目录路径（相对于根，不含前后斜杠）
 let currentFile = null; // 当前预览的文件路径
 
-// ── 读取最后同步时间 ──
-fetch('/__api__/.last_update_meta', {cache:'no-store'})
-  .catch(()=>{});
-
-// 用另一种方式读同步时间：通过特殊接口
-async function loadLastUpdate() {
-  try {
-    const r = await fetch('/healthz');
-    // healthz只是测活，同步时间通过meta文件读
-  } catch(e){}
-}
-
-// 从 /data/.last_update 读取（通过特殊nginx路由暴露）
+// ── 最后同步时间 ──
 async function fetchLastUpdate() {
   try {
     const r = await fetch('/__last_update__', {cache:'no-store'});
     if (r.ok) {
       const t = await r.text();
-      document.getElementById('last-update').textContent = '最后同步：' + t.trim();
+      if (t.trim()) {
+        document.getElementById('last-update').textContent = '最后同步：' + t.trim();
+      } else {
+        document.getElementById('last-update').textContent = '未同步';
+      }
     }
   } catch(e) {
     document.getElementById('last-update').textContent = '最后同步：未知';
   }
 }
 fetchLastUpdate();
+
+// ── 同步状态轮询 ──
+// /__syncing__ 文件存在(200) → 同步中；404 → 已完成
+function checkSyncing() {
+  fetch('/__syncing__', {cache:'no-store'})
+    .then(r => {
+      if (r.ok) {
+        // 同步中：显示覆盖层，2秒后再查
+        document.getElementById('syncing-overlay').classList.add('active');
+        setTimeout(checkSyncing, 2000);
+      } else {
+        // 同步完成：隐藏覆盖层
+        const overlay = document.getElementById('syncing-overlay');
+        if (overlay.classList.contains('active')) {
+          // 之前是同步中，现在完成了，刷新数据
+          overlay.classList.remove('active');
+          fetchLastUpdate();
+          navigate(currentPath);
+        }
+        // 正常情况下每 5 秒检查一次，防止 cron 触发的同步无感知
+        setTimeout(checkSyncing, 5000);
+      }
+    })
+    .catch(() => setTimeout(checkSyncing, 5000));
+}
+checkSyncing();
 
 // ── 工具函数 ──
 function ext(name) {
