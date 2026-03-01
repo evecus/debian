@@ -1,5 +1,21 @@
 #!/bin/sh
 
+
+# ─── 0. 应用时区 ─────────────────────────────────────────────────────────────
+
+TZ="${TZ:-Asia/Shanghai}"
+if [ -f "/usr/share/zoneinfo/$TZ" ]; then
+    ln -sf "/usr/share/zoneinfo/$TZ" /etc/localtime
+    echo "$TZ" > /etc/timezone
+    echo "[init] 时区已设置为: $TZ"
+else
+    echo "[init] 警告: 时区 '$TZ' 不存在，回退到 Asia/Shanghai"
+    TZ="Asia/Shanghai"
+    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+    echo "Asia/Shanghai" > /etc/timezone
+fi
+export TZ
+
 DATA_DIR="/data/files"
 ENV_CACHE="/data/.env_cache"
 ENV_HASH_FILE="/data/.env_hash"
@@ -23,18 +39,44 @@ is_valid_time() {
     echo "$1" | grep -qE '^([01][0-9]|2[0-3]):[0-5][0-9]$'
 }
 
+# 将 CRON 或 TIME（均按 TZ 时区解释）转换为 UTC cron 表达式
+tz_hour_to_utc() {
+    _h="$1"
+    TZ_OFFSET=$(date +%z)
+    TZ_SIGN=$(echo "$TZ_OFFSET" | cut -c1)
+    TZ_H=$(echo "$TZ_OFFSET" | cut -c2-3 | sed 's/^0//')
+    [ -z "$TZ_H" ] && TZ_H=0
+    if [ "$TZ_SIGN" = "+" ]; then
+        echo $(( (_h - TZ_H + 24) % 24 ))
+    else
+        echo $(( (_h + TZ_H) % 24 ))
+    fi
+}
+
 if is_valid_cron "$CRON_ENV"; then
-    FINAL_CRON="$CRON_ENV"
-    echo "[init] 使用 CRON 环境变量: $FINAL_CRON"
+    # CRON 按 TZ 时区解释，将小时字段转换为 UTC
+    CRON_MIN=$(echo "$CRON_ENV"  | awk '{print $1}')
+    CRON_H=$(echo "$CRON_ENV"    | awk '{print $2}')
+    CRON_REST=$(echo "$CRON_ENV" | awk '{print $3,$4,$5}')
+    if echo "$CRON_H" | grep -qE '^[0-9]+$'; then
+        # 小时是固定数字，做转换
+        UTC_H=$(tz_hour_to_utc "$CRON_H")
+        FINAL_CRON="$CRON_MIN $UTC_H $CRON_REST"
+        echo "[init] 使用 CRON=$CRON_ENV ($TZ) -> cron UTC: $FINAL_CRON"
+    else
+        # 小时是 * / 步进等复杂表达式，无法转换，直接使用并警告
+        FINAL_CRON="$CRON_ENV"
+        echo "[init] 警告: CRON 小时字段非固定值，无法转换时区，直接按 UTC 使用: $FINAL_CRON"
+    fi
 elif is_valid_time "$TIME"; then
     HOUR=$(echo "$TIME" | cut -d: -f1)
     MINUTE=$(echo "$TIME" | cut -d: -f2)
-    UTC_HOUR=$(( (HOUR - 8 + 24) % 24 ))
+    UTC_HOUR=$(tz_hour_to_utc "$HOUR")
     FINAL_CRON="$MINUTE $UTC_HOUR * * *"
-    echo "[init] 使用 TIME=$TIME -> cron UTC: $FINAL_CRON"
+    echo "[init] 使用 TIME=$TIME ($TZ) -> cron UTC: $FINAL_CRON"
 else
     FINAL_CRON="0 4 * * *"
-    echo "[init] TIME 格式无效，使用默认 12:00 北京时间 -> cron: $FINAL_CRON"
+    echo "[init] TIME 格式无效，使用默认 UTC 04:00 (Asia/Shanghai 12:00) -> cron: $FINAL_CRON"
 fi
 
 # ─── 2. 检测环境变量是否变化（只对同步相关变量做哈希）───────────────────────
