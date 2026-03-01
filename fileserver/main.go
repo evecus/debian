@@ -53,7 +53,13 @@ type PathPart struct {
 	Path string
 }
 
-const dataRoot = "data/files"
+// 优先读取 DATA_DIR 环境变量，容器内由 entrypoint.sh 设置为 /data/files
+var dataRoot = func() string {
+	if v := os.Getenv("DATA_DIR"); v != "" {
+		return v
+	}
+	return "data/files"
+}()
 
 func main() {
 	port := "8080"
