@@ -86,9 +86,13 @@ var funcMap = template.FuncMap{
 	"add":        func(a, b int) int { return a + b },
 }
 
+// isBrowser 判断请求是否来自浏览器：Accept 头包含 text/html 即视为浏览器
+func isBrowser(r *http.Request) bool {
+	return strings.Contains(r.Header.Get("Accept"), "text/html")
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
 	urlPath := strings.TrimPrefix(r.URL.Path, "/")
-	isRaw := r.URL.Query().Get("raw") == "1"
 	fsPath := filepath.Join(dataRoot, filepath.FromSlash(urlPath))
 	absData, _ := filepath.Abs(dataRoot)
 	absPath, err := filepath.Abs(fsPath)
@@ -102,14 +106,20 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if info.IsDir() {
-		serveDir(w, r, fsPath, urlPath)
+		// 目录：浏览器显示列表页，wget/curl 返回 404（目录无原始内容）
+		if isBrowser(r) {
+			serveDir(w, r, fsPath, urlPath)
+		} else {
+			http.Error(w, "Not a file: "+urlPath, 404)
+		}
 		return
 	}
-	if isRaw {
+	// 文件：浏览器显示预览页，wget/curl 直接返回原始内容
+	if isBrowser(r) {
+		serveFile(w, r, fsPath, urlPath)
+	} else {
 		serveRaw(w, r, fsPath)
-		return
 	}
-	serveFile(w, r, fsPath, urlPath)
 }
 
 func serveDir(w http.ResponseWriter, r *http.Request, fsPath, urlPath string) {
@@ -163,7 +173,7 @@ func serveFile(w http.ResponseWriter, r *http.Request, fsPath, urlPath string) {
 	if r.TLS != nil {
 		scheme = "https"
 	}
-	rawURL := fmt.Sprintf("%s://%s/%s?raw=1", scheme, r.Host, urlPath)
+	rawURL := fmt.Sprintf("%s://%s/%s", scheme, r.Host, urlPath)
 	fd := FileData{
 		Path:    urlPath,
 		Parts:   buildParts(urlPath),
