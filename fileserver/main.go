@@ -69,6 +69,7 @@ func main() {
 	if err := os.MkdirAll(dataRoot, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "Cannot create %s: %v\n", dataRoot, err)
 	}
+	http.HandleFunc("/__last_update__", lastUpdateHandler)
 	http.HandleFunc("/", handler)
 	fmt.Printf("🚀 FileServer running at http://localhost:%s\n", port)
 	fmt.Printf("📁 Serving: %s\n", dataRoot)
@@ -76,6 +77,26 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+// lastUpdateFile 与 dataRoot 同级的上一层目录下的 .last_update 文件
+var lastUpdateFile = func() string {
+	if v := os.Getenv("DATA_DIR"); v != "" {
+		// DATA_DIR=/data/files  →  /data/.last_update
+		return filepath.Join(filepath.Dir(v), ".last_update")
+	}
+	return filepath.Join(filepath.Dir("data/files"), ".last_update")
+}()
+
+func lastUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	data, err := os.ReadFile(lastUpdateFile)
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	if err != nil {
+		w.Write([]byte(""))
+		return
+	}
+	w.Write([]byte(strings.TrimSpace(string(data))))
 }
 
 var funcMap = template.FuncMap{
