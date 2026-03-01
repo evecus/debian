@@ -71,6 +71,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Cannot create %s: %v\n", dataRoot, err)
 	}
 	http.HandleFunc("/__last_update__", lastUpdateHandler)
+	http.HandleFunc("/__syncing__", syncingHandler)
 	http.HandleFunc("/__raw__/", rawPrefixHandler)
 	http.HandleFunc("/", handler)
 	fmt.Printf("🚀 FileServer running at http://localhost:%s\n", port)
@@ -89,6 +90,29 @@ var lastUpdateFile = func() string {
 	}
 	return filepath.Join(filepath.Dir("data/files"), ".last_update")
 }()
+
+// syncingFile：同步进行中时由 entrypoint.sh 创建，完成后删除
+var syncingFile = func() string {
+	if v := os.Getenv("DATA_DIR"); v != "" {
+		return filepath.Join(filepath.Dir(v), ".syncing")
+	}
+	return filepath.Join(filepath.Dir("data/files"), ".syncing")
+}()
+
+func isSyncing() bool {
+	_, err := os.Stat(syncingFile)
+	return err == nil
+}
+
+func syncingHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	if isSyncing() {
+		w.Write([]byte("1"))
+	} else {
+		w.Write([]byte("0"))
+	}
+}
 
 func rawPrefixHandler(w http.ResponseWriter, r *http.Request) {
 	urlPath := strings.TrimPrefix(r.URL.Path, "/__raw__/")
@@ -132,6 +156,11 @@ func isBrowser(r *http.Request) bool {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
+	// 同步进行中时，浏览器访问任何路径都返回同步中提示页
+	if isSyncing() && isBrowser(r) {
+		serveSyncing(w, r)
+		return
+	}
 	urlPath := strings.TrimPrefix(r.URL.Path, "/")
 	fsPath := filepath.Join(dataRoot, filepath.FromSlash(urlPath))
 	absData, _ := filepath.Abs(dataRoot)
@@ -160,6 +189,72 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		serveRaw(w, r, fsPath)
 	}
+}
+
+func serveSyncing(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	const syncingHTML = `<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>正在同步 — FileServer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #f6f8fa;
+    color: #1f2328;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+  }
+  .card {
+    background: #fff;
+    border: 1px solid #d0d7de;
+    border-radius: 8px;
+    padding: 40px 48px;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+  }
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #d0d7de;
+    border-top-color: #0969da;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 20px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  h2 { font-size: 16px; font-weight: 600; margin-bottom: 8px; color: #1f2328; }
+  p  { font-size: 13px; color: #57606a; line-height: 1.6; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner"></div>
+    <h2>文件正在同步中</h2>
+    <p>请稍候，同步完成后页面将自动刷新。</p>
+  </div>
+  <script>
+    // 每 2 秒轮询一次，同步完成后刷新页面
+    function check() {
+      fetch('/__syncing__')
+        .then(r => r.text())
+        .then(t => { if (t.trim() === '0') location.reload(); else setTimeout(check, 2000); })
+        .catch(() => setTimeout(check, 2000));
+    }
+    setTimeout(check, 2000);
+  </script>
+</body>
+</html>`
+	fmt.Fprint(w, syncingHTML)
 }
 
 func serveDir(w http.ResponseWriter, r *http.Request, fsPath, urlPath string) {
