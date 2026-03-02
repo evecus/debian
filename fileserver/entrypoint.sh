@@ -56,9 +56,9 @@ if is_valid_cron "$CRON_ENV"; then
     CRON_H=$(echo "$CRON_ENV"    | awk '{print $2}')
     CRON_REST=$(echo "$CRON_ENV" | awk '{print $3,$4,$5}')
     if echo "$CRON_H" | grep -qE '^[0-9]+$'; then
-        UTC_H=$(tz_hour_to_utc "$CRON_H")
-        FINAL_CRON="$CRON_MIN $UTC_H $CRON_REST"
-        echo "[init] 使用 CRON=$CRON_ENV ($TZ) -> cron UTC: $FINAL_CRON"
+        #UTC_H=$(tz_hour_to_utc "$CRON_H")
+        FINAL_CRON="$CRON_MIN $CRON_H $CRON_REST"
+        echo "[init] 使用 CRON=$CRON_ENV ($TZ)"
     else
         FINAL_CRON="$CRON_ENV"
         echo "[init] 警告: CRON 小时字段非固定值，无法转换时区，直接按 UTC 使用: $FINAL_CRON"
@@ -71,7 +71,7 @@ elif is_valid_time "$TIME"; then
     echo "[init] 使用 TIME=$TIME ($TZ) -> cron UTC: $FINAL_CRON"
 else
     FINAL_CRON="0 12 * * *"
-    echo "[init] TIME 格式无效，使用默认 UTC 04:00 (Asia/Shanghai 12:00) -> cron: $FINAL_CRON"
+    echo "[init] TIME 格式无效，使用默认 UTC 12:00 (Asia/Shanghai 12:00) -> cron: $FINAL_CRON"
 fi
 
 # ─── 2. 检测环境变量是否变化 ─────────────────────────────────────────────────
