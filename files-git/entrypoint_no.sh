@@ -64,12 +64,12 @@ if is_valid_cron "$CRON_ENV"; then
 elif is_valid_time "$TIME"; then
     HOUR=$(echo "$TIME" | cut -d: -f1)
     MINUTE=$(echo "$TIME" | cut -d: -f2)
-    UTC_HOUR=$(tz_hour_to_utc "$HOUR")
-    FINAL_CRON="$MINUTE $UTC_HOUR * * *"
+    #UTC_HOUR=$(tz_hour_to_utc "$HOUR")
+    FINAL_CRON="$MINUTE $HOUR * * *"
     echo "[init] 使用 TIME=$TIME ($TZ) -> cron UTC: $FINAL_CRON"
 else
-    FINAL_CRON="0 4 * * *"
-    echo "[init] TIME 格式无效，使用默认 UTC 04:00 (Asia/Shanghai 12:00) -> cron: $FINAL_CRON"
+    FINAL_CRON="0 12 * * *"
+    echo "[init] TIME 格式无效，使用默认 UTC 12:00 (Asia/Shanghai 12:00) -> cron: $FINAL_CRON"
 fi
 
 # ─── 2. 检测环境变量是否变化 ─────────────────────────────────────────────────
